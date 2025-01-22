@@ -10,11 +10,25 @@
 
 ## Installation
 
-You can install the package locally:
+### Local Installation
+
+To install the package locally, clone the repository and use `pip`:
 
 ```bash
+git clone https://github.com/GSU-Analytics/read_pyfiles.git
+cd read_pyfiles
 pip install .
 ```
+
+### Remote Installation
+
+If the repository is public and includes a `setup.py`, you can install it directly from GitHub:
+
+```bash
+pip install git+https://github.com/GSU-Analytics/read_pyfiles.git
+```
+
+This will fetch the latest version of the code from the `main` branch and install it.
 
 ## Usage
 
@@ -43,7 +57,7 @@ To set up a development environment:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/read_pyfiles.git
+git clone https://github.com/GSU-Analytics/read_pyfiles.git
 cd read_pyfiles
 ```
 
@@ -62,15 +76,14 @@ pytest -vv
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-```
 
----
+## Contributing
 
-### Additional Notes:
-1. **`setup.py`**:
-   - Replace `"your.email@example.com"` and `"https://github.com/yourusername/read_pyfiles"` with your email and GitHub URL.
-   - If you're publishing on PyPI, ensure your GitHub repository is public and has a proper license.
+We welcome contributions to improve this package. If you'd like to contribute, please:
+1. Fork the repository.
+2. Create a new branch for your changes.
+3. Submit a pull request with a clear description of the changes.
 
-2. **`README.md`**:
-   - Adjust the description to match your use case.
-   - Include additional sections as needed (e.g., Examples, FAQs).
+## Contact
+
+For any questions or issues, please open an issue in the [GitHub repository](https://github.com/GSU-Analytics/read_pyfiles).
