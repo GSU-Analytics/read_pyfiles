@@ -1,0 +1,208 @@
+
+# File: read_pyfiles\main.py
+
+import sys
+from read_pyfiles.utils import traverse_and_collect, load_config
+
+def main():
+    """Main function to execute the script logic."""
+    config = load_config()
+
+    paths_to_traverse = config.get("paths_to_read", [])
+    output_file = config.get("output_file", "output.txt")
+
+    if not paths_to_traverse:
+        print("No paths to traverse specified in the configuration file.", file=sys.stderr)
+        sys.exit(1)
+
+    traverse_and_collect(paths_to_traverse, output_file)
+
+if __name__ == "__main__":
+    main()
+
+
+# File: read_pyfiles\utils.py
+
+import os
+import sys
+import yaml
+
+def read_file(file_path):
+    """Read the contents of a file and return it."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        print(f"Error reading {file_path}: {e}", file=sys.stderr)
+        return None
+
+def traverse_and_collect(paths, output_file):
+    """
+    Traverse the folders and Python files in the given paths, read their contents,
+    and output everything to a single text file.
+
+    Args:
+        paths (list): List of folder and/or file paths.
+        output_file (str): Path to the output text file.
+    """
+    collected_contents = []
+
+    for path in paths:
+        if os.path.isfile(path):
+            if path.endswith('.py'):
+                content = read_file(path)
+                if content:
+                    collected_contents.append(f"\n# File: {path}\n\n{content}")
+        elif os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for file in files:
+                    if file.endswith('.py'):
+                        file_path = os.path.join(root, file)
+                        content = read_file(file_path)
+                        if content:
+                            collected_contents.append(f"\n# File: {file_path}\n\n{content}")
+        else:
+            print(f"Invalid path: {path}", file=sys.stderr)
+
+    try:
+        with open(output_file, 'w', encoding='utf-8') as output:
+            output.write("\n\n".join(collected_contents))
+        print(f"All Python file contents have been written to {output_file}")
+    except Exception as e:
+        print(f"Error writing to output file {output_file}: {e}", file=sys.stderr)
+
+def load_config(config_file="config/read_config.yaml"):
+    """
+    Load configuration from a YAML file.
+    Args:
+        config_file (str): Path to the YAML configuration file.
+    Returns:
+        dict: Configuration data.
+    """
+    try:
+        with open(config_file, 'r', encoding='utf-8') as file:
+            return yaml.safe_load(file)
+    except Exception as e:
+        print(f"Error loading configuration file {config_file}: {e}", file=sys.stderr)
+        return {}
+
+
+
+# File: read_pyfiles\__init__.py
+
+"""
+read_pyfiles: A package to traverse directories, read Python files, and output their contents.
+"""
+
+__version__ = "0.1"
+
+
+
+# File: read_pyfiles\config\__init__.py
+
+"""
+Configuration package for read_pyfiles.
+"""
+
+
+
+# File: tests\test_main.py
+
+import pytest
+from read_pyfiles.main import main
+
+@pytest.fixture
+def mock_config_file(tmp_path, monkeypatch):
+    """Create a mock configuration file and set its path."""
+    config_file = tmp_path / "read_config.yaml"
+    config_file.write_text("""
+    output_file: "output_test.txt"
+    paths_to_read:
+      - "tests"
+    """)
+
+    # Monkeypatch the load_config function in the main module
+    def mock_load_config(_):
+        import yaml
+        with open(config_file, "r", encoding="utf-8") as file:
+            return yaml.safe_load(file)
+
+    monkeypatch.setattr("read_pyfiles.main.load_config", mock_load_config)
+
+    return config_file
+
+def test_main_with_mock_config(mock_config_file, tmp_path, monkeypatch, capsys):
+    """Test the main function with a mock configuration."""
+    # Monkeypatch sys.exit to avoid actual termination
+    monkeypatch.setattr("sys.exit", lambda x: None)
+
+    # Run the main function
+    main()
+
+    # Check the output
+    captured = capsys.readouterr()
+    assert "All Python file contents have been written to" in captured.out
+
+
+# File: tests\test_utils.py
+
+import os
+import pytest
+from read_pyfiles.utils import read_file, traverse_and_collect, load_config
+
+@pytest.fixture
+def sample_files(tmp_path):
+    """Fixture to create sample Python files and directories."""
+    folder = tmp_path / "sample"
+    folder.mkdir()
+
+    file1 = folder / "file1.py"
+    file1.write_text("print('Hello from file1')")
+
+    file2 = folder / "file2.py"
+    file2.write_text("print('Hello from file2')")
+
+    subfolder = folder / "subfolder"
+    subfolder.mkdir()
+
+    file3 = subfolder / "file3.py"
+    file3.write_text("print('Hello from file3')")
+
+    return folder
+
+def test_read_file(sample_files):
+    file1 = sample_files / "file1.py"
+    content = read_file(file1)
+    assert content == "print('Hello from file1')"
+
+    non_existent_file = sample_files / "nonexistent.py"
+    content = read_file(non_existent_file)
+    assert content is None
+
+def test_traverse_and_collect(sample_files, tmp_path):
+    output_file = tmp_path / "output.txt"
+    traverse_and_collect([sample_files], output_file)
+
+    with open(output_file, "r", encoding="utf-8") as f:
+        output_content = f.read()
+
+    assert "print('Hello from file1')" in output_content
+    assert "print('Hello from file2')" in output_content
+    assert "print('Hello from file3')" in output_content
+
+def test_load_config(tmp_path):
+    config_file = tmp_path / "read_config.yaml"
+    config_file.write_text("""
+    output_file: "output.txt"
+    paths_to_read:
+      - "src"
+      - "tests"
+    """)
+
+    config = load_config(config_file)
+    assert config["output_file"] == "output.txt"
+    assert config["paths_to_read"] == ["src", "tests"]
+
+def test_load_config_invalid_file():
+    config = load_config("nonexistent.yaml")
+    assert config == {}

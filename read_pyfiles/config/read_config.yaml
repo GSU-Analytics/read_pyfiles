@@ -1,0 +1,5 @@
+output_file: "output.txt"
+paths_to_read:
+  - "src"
+  - "tests"
+  - "main.py"
